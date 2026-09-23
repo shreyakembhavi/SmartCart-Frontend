@@ -1,30 +1,34 @@
-import React, { useState, useCallback } from "react";
+import React, { ReactElement, useCallback, useState } from "react";
 import {
-  View,
-  FlatList,
-  Image,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
   ActivityIndicator,
   Dimensions,
+  FlatList,
+  Image,
   RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useRouter } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import AddToCart from "./add_recipe_cart";
 
 const screenWidth = Dimensions.get("window").width;
+
+type RecipeListProps = {
+  recipes: any[];
+  loading: boolean;
+  fetchRandomRecipes: () => void;
+  header?: ReactElement;
+};
 
 export default function RecipeList({
   recipes,
   loading,
   fetchRandomRecipes,
-}: {
-  recipes: any[];
-  loading: boolean;
-  fetchRandomRecipes: () => void;
-}) {
+  header,
+}: RecipeListProps) {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -34,43 +38,56 @@ export default function RecipeList({
       await fetchRandomRecipes();
     } catch (error) {
       console.error("Error refreshing recipes:", error);
+    } finally {
+      setRefreshing(false);
     }
-    setRefreshing(false);
   }, [fetchRandomRecipes]);
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        {header}
+        <ActivityIndicator size="large" color="#2D6A4F" style={styles.loader} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      {loading ? (
-        <ActivityIndicator size="large" color="#007BFF" style={styles.loader} />
-      ) : (
-        <FlatList
-          data={recipes}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <View style={styles.recipeCard}>
-              <TouchableOpacity
-                onPress={() => router.push(`/recipeDetail/${item.id}`)}
-                style={styles.cardContent}
-              >
-                <Image source={{ uri: item.image }} style={styles.recipeImage} />
-                <Text style={styles.recipeTitle} numberOfLines={2}>
-                  {item.title}
-                </Text>
-              </TouchableOpacity>
+      <FlatList
+        data={recipes}
+        keyExtractor={(item) => item.id.toString()}
+        ListHeaderComponent={header}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>No recipes are available right now.</Text>
+        }
+        renderItem={({ item }) => (
+          <View style={styles.recipeCard}>
+            <TouchableOpacity
+              onPress={() => router.push(`/recipeDetail/${item.id}`)}
+              style={styles.cardContent}
+            >
+              <Image source={{ uri: item.image }} style={styles.recipeImage} />
+              <Text style={styles.recipeTitle} numberOfLines={2}>
+                {item.title}
+              </Text>
+            </TouchableOpacity>
 
-              <AddToCart recipe={item} />
-            </View>
-          )}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#007BFF"]} />
-          }
-        />
-      )}
+            <AddToCart recipe={item} />
+          </View>
+        )}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#2D6A4F"]}
+          />
+        }
+      />
     </View>
   );
 }
 
-// ✅ Updated Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -78,6 +95,12 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: 20,
+  },
+  emptyText: {
+    color: "#666",
+    fontSize: 15,
+    padding: 24,
+    textAlign: "center",
   },
   recipeCard: {
     width: screenWidth - 20,
