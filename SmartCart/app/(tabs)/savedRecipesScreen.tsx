@@ -6,48 +6,95 @@ import {
   Image,
   TouchableOpacity,
   StyleSheet,
+  Alert,
+  RefreshControl,
 } from "react-native";
+import Constants from "expo-constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 type RecipeType = {
   id: string;
+  recipe_id: number;
   title: string;
   image: string;
 };
 
+const API_URL = Constants.expoConfig?.extra?.API_URL;
+
 const SavedRecipesScreen: React.FC = () => {
   const [savedRecipes, setSavedRecipes] = useState<RecipeType[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
 
-  // Load saved recipes on screen focus
+  const loadSavedRecipes = async () => {
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      if (!token) {
+        console.warn("No token found.");
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/saved-recipes`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.message || "Failed to fetch saved recipes");
+      }
+
+      setSavedRecipes(data.saved_recipes || []);
+    } catch (error: any) {
+      console.error("Error fetching saved recipes:", error);
+      Alert.alert("Error", "Failed to fetch saved recipes.");
+    }
+  };
+
   useFocusEffect(
     useCallback(() => {
-      const loadSavedRecipes = async () => {
-        try {
-          const storedRecipes = await AsyncStorage.getItem("savedRecipes");
-          if (storedRecipes) {
-            setSavedRecipes(JSON.parse(storedRecipes));
-          } else {
-            setSavedRecipes([]);
-          }
-        } catch (error) {
-          console.error("Error fetching saved recipes:", error);
-        }
-      };
-
       loadSavedRecipes();
     }, [])
   );
 
-  const removeFavorite = async (id: string) => {
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadSavedRecipes();
+    setRefreshing(false);
+  }, []);
+
+  const removeFavorite = async (recipeId: number) => {
     try {
-      const updatedRecipes = savedRecipes.filter((recipe) => recipe.id !== id);
+      const token = await AsyncStorage.getItem("authToken");
+      if (!token) {
+        Alert.alert("Error", "Authentication required. Please log in.");
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/saved-recipes`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ recipe_id: recipeId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to remove recipe");
+      }
+      const updatedRecipes = savedRecipes.filter((recipe) => recipe.recipe_id !== recipeId);
       setSavedRecipes(updatedRecipes);
-      await AsyncStorage.setItem("savedRecipes", JSON.stringify(updatedRecipes));
-    } catch (error) {
+      Alert.alert("Success", "Recipe removed from saved recipes");
+    } catch (error: any) {
       console.error("Error removing recipe:", error);
+      Alert.alert("Error", error.message || "Failed to remove recipe. Please try again.");
     }
   };
 
@@ -61,7 +108,7 @@ const SavedRecipesScreen: React.FC = () => {
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
             <View style={styles.recipeCard}>
-              <TouchableOpacity onPress={() => router.push(`/recipeDetail/${item.id}`)}>
+              <TouchableOpacity onPress={() => router.push(`/recipeDetail/${item.recipe_id}`)}>
                 <Image source={{ uri: item.image }} style={styles.recipeImage} />
               </TouchableOpacity>
 
@@ -69,11 +116,18 @@ const SavedRecipesScreen: React.FC = () => {
                 <Text style={styles.recipeTitle}>{item.title}</Text>
               </View>
 
-              <TouchableOpacity onPress={() => removeFavorite(item.id)} style={styles.heartContainer}>
+              <TouchableOpacity onPress={() => removeFavorite(item.recipe_id)} style={styles.heartContainer}>
                 <Ionicons name="heart" size={24} color="red" />
               </TouchableOpacity>
             </View>
           )}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={["#007BFF"]}
+            />
+          }
         />
       ) : (
         <Text style={styles.noRecipesText}>No saved recipes yet.</Text>
@@ -93,7 +147,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
     marginBottom: 20,
-    marginTop: 40, // Move title down
+    marginTop: 40,
   },
   noRecipesText: {
     fontSize: 18,
