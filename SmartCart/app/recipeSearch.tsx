@@ -100,20 +100,15 @@ export default function RecipeSearchScreen() {
 
   const handleSearch = useCallback(async () => {
     if (!searchQuery.trim()) {
-      console.log('Search skipped: No query');
       return;
     }
 
     if (!token) {
-      console.log('Search skipped: No token');
       return;
     }
 
     setLoading(true);
     try {
-      console.log('Searching with query:', searchQuery);
-      console.log('Using API URL:', API_URL);
-      console.log('Using token:', token);
       
       // Build query parameters
       const queryParams = new URLSearchParams({
@@ -124,7 +119,6 @@ export default function RecipeSearchScreen() {
       });
       
       const url = `${API_URL}/recipes?${queryParams.toString()}`;
-      console.log('Full URL:', url);
       
       const response = await fetch(url, {
         method: "GET",
@@ -134,9 +128,7 @@ export default function RecipeSearchScreen() {
         },
       });
 
-      console.log('Response status:', response.status);
       const data = await response.json();
-      console.log('Response data:', data);
 
       if (response.status !== 200) {
         throw new Error(data.error || "Failed to fetch recipes");
