@@ -237,7 +237,6 @@ const styles = StyleSheet.create({
   toggleContainer: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", width: "100%" },
   toggleText: { fontSize: 16, color: "#333" },
 
-  logoutButton: { backgroundColor: "red", padding: 15, borderRadius: 25, width: "100%", alignItems: "center", marginTop: 20 },
   logoutButtonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
 
   preferenceButton: { backgroundColor: "#28A745", padding: 15, borderRadius: 5, alignItems: "center", marginTop: 10, width: "100%"},
