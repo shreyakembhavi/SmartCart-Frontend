@@ -60,7 +60,8 @@ export default function RecipeDetail() {
           Alert.alert("Error", "Authentication required. Please log in.");
           return;
         }
-        const recipeResponse = await fetch(`${API_URL}/recipedetail/${recipe_id}`, {
+
+        const response = await fetch(`${API_URL}/recipedetail/${recipe_id}`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -68,27 +69,17 @@ export default function RecipeDetail() {
           },
         });
 
-        if (!recipeResponse.ok) {
-          const errorText = await recipeResponse.text();
+        if (!response.ok) {
+          const errorText = await response.text();
           console.error("🚨 API Error Response:", errorText);
-          throw new Error(`API returned ${recipeResponse.status}: ${errorText}`);
+          throw new Error(`API returned ${response.status}: ${errorText}`);
         }
 
-        const data: Recipe = await recipeResponse.json();
+        const data: Recipe = await response.json();
         setRecipe(data);
-        const savedResponse = await fetch(`${API_URL}/saved-recipes`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-        });
 
-        if (!savedResponse.ok) {
-          throw new Error("Failed to fetch saved recipes");
-        }
-
-        const savedData = await savedResponse.json();
-        setIsFavorited(savedData.saved_recipes.some((r: any) => r.recipe_id === data.id));
+        const saved = JSON.parse((await AsyncStorage.getItem("savedRecipes")) ?? "[]");
+        setIsFavorited(saved.some((r: Recipe) => r.id === data.id));
       } catch (error) {
         console.error("🚨 Error fetching recipe details:", error);
         Alert.alert("Error", "Failed to load recipe details. Please try again.");
@@ -100,46 +91,16 @@ export default function RecipeDetail() {
   }, [recipe_id]);
 
   const toggleFavorite = async () => {
-    try {
-      const authToken = await AsyncStorage.getItem("authToken");
-      if (!authToken) {
-        Alert.alert("Error", "Authentication required. Please log in.");
-        return;
-      }
+    let savedRecipes: Recipe[] = JSON.parse((await AsyncStorage.getItem("savedRecipes")) ?? "[]");
 
-      if (isFavorited) {
-        const response = await fetch(`${API_URL}/saved-recipes`, {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authToken}`,
-          },
-          body: JSON.stringify({ recipe_id: recipe?.id }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to remove recipe from saved recipes");
-        }
-      } else {
-        const response = await fetch(`${API_URL}/saved-recipes`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authToken}`,
-          },
-          body: JSON.stringify({ recipe_id: recipe?.id }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to save recipe");
-        }
-      }
-
-      setIsFavorited(!isFavorited);
-    } catch (error) {
-      console.error("Error toggling favorite:", error);
-      Alert.alert("Error", "Failed to update saved recipes. Please try again.");
+    if (isFavorited) {
+      savedRecipes = savedRecipes.filter((r) => r.id !== recipe?.id);
+    } else {
+      if (recipe) savedRecipes.push(recipe);
     }
+
+    await AsyncStorage.setItem("savedRecipes", JSON.stringify(savedRecipes));
+    setIsFavorited(!isFavorited);
   };
 
   if (loading) {
@@ -175,6 +136,7 @@ export default function RecipeDetail() {
       ListHeaderComponent={
         <>
           <Image source={{ uri: recipe.image }} style={styles.recipeImage} />
+          {/* Like Button from Shreya’s branch */}
           <TouchableOpacity onPress={toggleFavorite} style={styles.heartButtonCentered}>
             <Ionicons name={isFavorited ? "heart" : "heart-outline"} size={30} color="red" />
           </TouchableOpacity>
