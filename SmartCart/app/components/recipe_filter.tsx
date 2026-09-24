@@ -5,12 +5,12 @@ import { Ionicons } from '@expo/vector-icons';
 interface RecipeFilterProps {
   onFilterChange: (filters: {
     price_range?: string;
-    time_range?: number;
+    time_range?: string;
     meal_type?: string;
   }) => void;
   currentFilters: {
     price_range?: string;
-    time_range?: number;
+    time_range?: string;
     meal_type?: string;
   };
 }
