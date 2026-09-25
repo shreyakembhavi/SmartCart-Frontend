@@ -36,13 +36,10 @@ const LoginScreen = () => {
         const storedEmail = await AsyncStorage.getItem("userEmail");
         const storedToken = await AsyncStorage.getItem("authToken");
 
-        console.log("Stored Email:", storedEmail);  // ✅ Debugging
-        console.log("Stored Token:", storedToken);  // ✅ Debugging
 
         if (storedEmail) setEmail(storedEmail); // ✅ Pre-fill email if stored
 
         if (storedToken) {
-          console.log("Checking stored token...");
 
           // ✅ Send request with correct JWT Authorization header
           const response = await fetch(`${API_URL}/protected`, {
@@ -53,19 +50,15 @@ const LoginScreen = () => {
             },
           });
 
-          console.log("Response Status:", response.status);  // ✅ Debugging
 
           if (response.status === 200) {
             const data = await response.json();
-            console.log("Token is valid, redirecting to dashboard:", data.message);
             router.push("/dashboard"); // ✅ Navigate to dashboard if valid
             return;
           } else {
-            console.log("Invalid token, staying on login page.");
             await AsyncStorage.removeItem("authToken"); // ✅ Clear invalid token
           }
         } else {
-          console.log("No stored token found.");
         }
       } catch (error) {
         console.error("Error checking auth status:", error);
@@ -95,12 +88,9 @@ const LoginScreen = () => {
       });
 
       const data = await response.json();
-      console.log("Login response:", data); // Add debug logging
 
       if (response.status === 200) { // Only check status for 2FA flow
-        console.log("Login successful, storing data..."); // Add debug logging
         await AsyncStorage.setItem("userEmail", email);
-        console.log("Data stored, navigating to 2FA..."); // Add debug logging
         Alert.alert("Success", "Please check your email for 2FA code.");
         router.push("/setup-2fa");
       } else {

@@ -5,12 +5,12 @@ import { Ionicons } from '@expo/vector-icons';
 interface RecipeFilterProps {
   onFilterChange: (filters: {
     price_range?: string;
-    max_ready_time?: number;
+    time_range?: string;
     meal_type?: string;
   }) => void;
   currentFilters: {
     price_range?: string;
-    max_ready_time?: number;
+    time_range?: string;
     meal_type?: string;
   };
 }
@@ -61,7 +61,7 @@ const RecipeFilter: React.FC<RecipeFilterProps> = ({ onFilterChange, currentFilt
   }: {
     title: string;
     items: Array<{ id: string | number; label: string; icon: string }>;
-    filterKey: 'price_range' | 'max_ready_time' | 'meal_type';
+    filterKey: 'price_range' | 'time_range' | 'meal_type';
   }) => (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
